@@ -32,6 +32,7 @@ coverage/
 
 # deployment
 .vercel
+.netlify/
 
 # OS & editor files
 .DS_Store

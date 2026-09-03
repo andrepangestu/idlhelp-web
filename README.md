@@ -24,6 +24,23 @@ npm run build
 npm run start
 ```
 
+## Deployment (Netlify via GitHub Actions)
+
+`next.config.js` sets `output: "export"`, so `npm run build` writes a fully static site to `out/`.
+`.github/workflows/deploy.yml` builds on every push and pull request and, when the secrets below exist, uploads `out/` to Netlify:
+
+- push to `main` → production deploy
+- pull request → preview deploy at `https://pr-<number>--<site-name>.netlify.app` (URL shown in the job summary)
+
+Required GitHub repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Where to get it |
+| --- | --- |
+| `NETLIFY_AUTH_TOKEN` | Netlify → User settings → Applications → Personal access tokens → New access token |
+| `NETLIFY_SITE_ID` | Netlify → your site → Site configuration → General → Site details → Site ID |
+
+`netlify.toml` adds caching and security headers plus a temporary `X-Robots-Tag: noindex` header. Remove that header before the real launch.
+
 ## Where things live
 
 | What | Where |

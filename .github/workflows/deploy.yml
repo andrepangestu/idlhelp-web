@@ -1,0 +1,90 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    name: Build (and deploy to Netlify)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      NEXT_TELEMETRY_DISABLED: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'public/**', 'next.config.js') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static export
+        run: npm run build
+
+      - name: Verify export output
+        run: |
+          test -f out/index.html
+          test -f out/icon.png
+          echo "Export OK: $(find out -type f | wc -l) files"
+
+      # Pull requests get a preview URL: https://pr-<number>--<site-name>.netlify.app
+      - name: Deploy preview to Netlify (pull request)
+        if: github.event_name == 'pull_request' && env.NETLIFY_AUTH_TOKEN != ''
+        run: |
+          npx --yes netlify-cli@latest deploy \
+            --dir=out \
+            --alias="pr-${{ github.event.number }}" \
+            --message="PR #${{ github.event.number }} ${{ github.sha }}" \
+            --json > deploy.json
+          {
+            echo "### Netlify preview"
+            echo
+            echo "$(jq -r '.deploy_url' deploy.json)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Pushes to main go straight to production.
+      - name: Deploy production to Netlify (main)
+        if: github.event_name != 'pull_request' && env.NETLIFY_AUTH_TOKEN != ''
+        run: |
+          npx --yes netlify-cli@latest deploy \
+            --dir=out \
+            --prod \
+            --message="main ${{ github.sha }}" \
+            --json > deploy.json
+          {
+            echo "### Netlify production"
+            echo
+            echo "$(jq -r '.url' deploy.json)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy skipped (secrets missing)
+        if: env.NETLIFY_AUTH_TOKEN == ''
+        run: |
+          echo "Build verified. Deploy skipped because NETLIFY_AUTH_TOKEN / NETLIFY_SITE_ID secrets are not set." >> "$GITHUB_STEP_SUMMARY"
