@@ -6,7 +6,8 @@ Next.js 16 App Router, plain JavaScript, Turbopack. Lives inside the "Bexon" The
 ## Commands
 
 - `npm run dev` — dev server on http://localhost:3005. Check `lsof -nP -iTCP:3005 -sTCP:LISTEN` first; it is usually already running, reuse it.
-- `npm run build` — production build. Must pass before any work is called done. There are no lint or test scripts.
+- `npm run build` — static export to `out/` (`output: "export"` in `next.config.js`). Must pass before any work is called done. There are no lint or test scripts.
+- Deploy: push to `main` → `.github/workflows/deploy.yml` → Netlify (`netlify.toml`). PRs get preview URLs. The site is static: never add API routes, server actions, middleware or dynamic rendering.
 
 ## Scope: touch only these paths
 
