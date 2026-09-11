@@ -133,8 +133,6 @@ const SiteHeader = () => {
 				</nav>
 
 				<div className="iag-header__controls">
-					{renderLanguageSwitcher()}
-
 					<a
 						className="iag-btn iag-btn--primary iag-header__cta"
 						href="#sim-overview"
@@ -142,6 +140,8 @@ const SiteHeader = () => {
 						<LocalizedText value={hero.primaryAction} />
 						<i className="fa-light fa-book-open-cover" aria-hidden="true"></i>
 					</a>
+
+					{renderLanguageSwitcher()}
 
 					<button
 						type="button"
