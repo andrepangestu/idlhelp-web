@@ -1,4 +1,5 @@
-import { steps } from "@/data/content";
+import { processSection, steps } from "@/data/content";
+import LocalizedText from "./LocalizedText";
 import SectionHeading from "./SectionHeading";
 
 const HowItWorks = () => {
@@ -12,16 +13,16 @@ const HowItWorks = () => {
 				<SectionHeading
 					id="how-title"
 					center
-					eyebrow="How it works"
-					title="A simple, clear process"
-					text="From your first message to the official channel, you always know what comes next."
+					eyebrow={processSection.eyebrow}
+					title={processSection.title}
+					text={processSection.text}
 				/>
 
 				<ol className="iag-steps">
 					{steps.map((step, index) => (
 						<li
 							className="iag-step"
-							key={step.title}
+							key={step.title.en}
 							data-reveal
 							style={{ "--iag-delay": `${index * 90}ms` }}
 						>
@@ -33,9 +34,11 @@ const HowItWorks = () => {
 							</div>
 							<h3>
 								<span className="iag-sr-only">Step {index + 1}: </span>
-								{step.title}
+								<LocalizedText value={step.title} />
 							</h3>
-							<p>{step.text}</p>
+							<p>
+								<LocalizedText value={step.text} />
+							</p>
 						</li>
 					))}
 				</ol>

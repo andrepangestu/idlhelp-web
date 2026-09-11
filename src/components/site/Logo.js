@@ -1,4 +1,5 @@
 import { site } from "@/data/site";
+import LocalizedText from "./LocalizedText";
 
 /**
  * Brand lock-up: the IDL mark (cropped from the supplied logo) plus a
@@ -22,7 +23,9 @@ const Logo = ({ light = false, href = "#home" }) => {
 				<span className="iag-logo__word">
 					Indonesia <em>Driving</em> License <em>Help</em>
 				</span>
-				<small>{site.tagline}</small>
+				<small>
+					<LocalizedText value={site.tagline} />
+				</small>
 			</span>
 		</a>
 	);

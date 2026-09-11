@@ -1,4 +1,6 @@
+import { cta } from "@/data/content";
 import { site, whatsappLink } from "@/data/site";
+import LocalizedText from "./LocalizedText";
 import SkylineArt from "./SkylineArt";
 
 const CtaSection = () => {
@@ -14,24 +16,23 @@ const CtaSection = () => {
 						<i className="fa-light fa-headset"></i>
 					</span>
 					<h2 id="cta-title" className="iag-h2">
-						Need general administrative guidance?
+						<LocalizedText value={cta.title} />
 					</h2>
 					<p>
-						Speak with our independent assistance team. We are here to help you
-						understand and prepare.
+						<LocalizedText value={cta.text} />
 					</p>
 					<div className="iag-cta__actions">
 						<a className="iag-btn iag-btn--gold" href={whatsappLink()} target="_blank" rel="noopener noreferrer">
 							<i className="fa-brands fa-whatsapp" aria-hidden="true"></i>
-							Request a Consultation
+							<LocalizedText value={cta.primaryAction} />
 						</a>
-						<a className="iag-btn iag-btn--outline-light" href="#services">
+						<a className="iag-btn iag-btn--outline-light" href="#sim-overview">
 							<i className="fa-light fa-list-check" aria-hidden="true"></i>
-							See what we help with
+							<LocalizedText value={cta.secondaryAction} />
 						</a>
 					</div>
 					<a className="iag-cta__mail" href={`mailto:${site.email}`}>
-						or email {site.email}
+						<LocalizedText value={cta.emailPrefix} /> {site.email}
 					</a>
 				</div>
 			</div>

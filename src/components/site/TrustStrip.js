@@ -1,4 +1,5 @@
 import { trustItems } from "@/data/content";
+import LocalizedText from "./LocalizedText";
 
 const TrustStrip = () => {
 	return (
@@ -11,14 +12,18 @@ const TrustStrip = () => {
 				{trustItems.map((item, index) => (
 					<div
 						className="iag-trust__item"
-						key={item.title}
+						key={item.title.en}
 						data-reveal
 						style={{ "--iag-delay": `${index * 70}ms` }}
 					>
 						<i className={item.icon} aria-hidden="true"></i>
 						<div>
-							<h3>{item.title}</h3>
-							<p>{item.text}</p>
+							<h3>
+								<LocalizedText value={item.title} />
+							</h3>
+							<p>
+								<LocalizedText value={item.text} />
+							</p>
 						</div>
 					</div>
 				))}
