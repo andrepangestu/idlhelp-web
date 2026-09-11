@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { faqs } from "@/data/content";
+import { faqSection, faqs } from "@/data/content";
 import { whatsappLink } from "@/data/site";
+import LocalizedText from "./LocalizedText";
 import SectionHeading from "./SectionHeading";
 
 const Faq = () => {
@@ -14,16 +15,20 @@ const Faq = () => {
 				<div className="iag-faq-aside">
 					<SectionHeading
 						id="faq-title"
-						eyebrow="Frequently asked questions"
-						title="Common questions"
-						text="Straight answers about what we do, and what we do not do."
+						eyebrow={faqSection.eyebrow}
+						title={faqSection.title}
+						text={faqSection.text}
 					/>
 					<div className="iag-faq-aside__card">
-						<h3>Still have a question?</h3>
-						<p>Send us a message and we will reply in English with clear, independent information.</p>
+						<h3>
+							<LocalizedText value={faqSection.cardTitle} />
+						</h3>
+						<p>
+							<LocalizedText value={faqSection.cardText} />
+						</p>
 						<a className="iag-btn iag-btn--gold" href={whatsappLink()} target="_blank" rel="noopener noreferrer">
 							<i className="fa-brands fa-whatsapp" aria-hidden="true"></i>
-							Ask on WhatsApp
+							<LocalizedText value={faqSection.cardAction} />
 						</a>
 					</div>
 				</div>
@@ -44,7 +49,7 @@ const Faq = () => {
 										aria-controls={panelId}
 										onClick={() => setOpenIndex(isOpen ? -1 : index)}
 									>
-										{item.q}
+										<LocalizedText value={item.q} />
 										<i className="fa-light fa-chevron-down" aria-hidden="true"></i>
 									</button>
 								</h3>
@@ -56,7 +61,14 @@ const Faq = () => {
 									className={`iag-faq__panel ${isOpen ? "is-open" : ""}`}
 								>
 									<div>
-										<p>{item.a}</p>
+										<p>
+							<LocalizedText value={item.a} preserveEnglish />
+										</p>
+										{item.detail ? (
+											<p className="iag-faq__detail">
+												<LocalizedText value={item.detail} />
+											</p>
+										) : null}
 									</div>
 								</div>
 							</div>

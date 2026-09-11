@@ -1,5 +1,6 @@
-import { hero, heroOptions, heroPoints, services } from "@/data/content";
+import { hero, heroOptions, heroPoints } from "@/data/content";
 import { site, whatsappLink } from "@/data/site";
+import LocalizedText from "./LocalizedText";
 import SkylineArt from "./SkylineArt";
 
 const GaugeArt = () => (
@@ -18,11 +19,6 @@ const GaugeArt = () => (
 );
 
 const Hero = () => {
-	const optionServices = heroOptions.map((option) => ({
-		...option,
-		service: services.find((service) => service.id === option.serviceId),
-	}));
-
 	return (
 		<section id="home" className="iag-hero" aria-labelledby="hero-title">
 			{site.heroPhoto ? (
@@ -35,34 +31,40 @@ const Hero = () => {
 
 			<div className="iag-container iag-hero__grid">
 				<div className="iag-hero__copy">
-					<span className="iag-hero__chip">{hero.chip}</span>
+					<span className="iag-hero__chip">
+						<LocalizedText value={hero.chip} />
+					</span>
 
 					<h1 id="hero-title" className="iag-h1 iag-hero__title">
-						{hero.title}
+						<LocalizedText value={hero.title} />
 					</h1>
 
 					<div className="iag-hero__rule" aria-hidden="true"></div>
 
-					<p className="iag-hero__lead">{hero.lead}</p>
+					<p className="iag-hero__lead">
+						<LocalizedText value={hero.lead} />
+					</p>
 
-					<p className="iag-hero__text">{hero.text}</p>
+					<p className="iag-hero__text">
+						<LocalizedText value={hero.text} />
+					</p>
 
 					<div className="iag-hero__actions">
-						<a className="iag-btn iag-btn--gold" href={whatsappLink()} target="_blank" rel="noopener noreferrer">
-							<i className="fa-brands fa-whatsapp" aria-hidden="true"></i>
-							Request Information
+						<a className="iag-btn iag-btn--gold" href="#sim-overview">
+							<i className="fa-light fa-book-open-cover" aria-hidden="true"></i>
+							<LocalizedText value={hero.primaryAction} />
 						</a>
 						<a className="iag-btn iag-btn--outline-light" href="#how-it-works">
 							<i className="fa-light fa-circle-info" aria-hidden="true"></i>
-							Learn How It Works
+							<LocalizedText value={hero.secondaryAction} />
 						</a>
 					</div>
 
 					<ul className="iag-hero__points" aria-label="Service highlights">
 						{heroPoints.map((point) => (
-							<li key={point.label}>
+							<li key={point.label.en}>
 								<i className={point.icon} aria-hidden="true"></i>
-								{point.label}
+								<LocalizedText value={point.label} />
 							</li>
 						))}
 					</ul>
@@ -75,37 +77,41 @@ const Hero = () => {
 								<i className="fa-light fa-comments"></i>
 							</span>
 							<div>
-								<h2 id="panel-title">{hero.panelTitle}</h2>
-								<p>{hero.panelText}</p>
+								<h2 id="panel-title">
+									<LocalizedText value={hero.panelTitle} />
+								</h2>
+								<p>
+									<LocalizedText value={hero.panelText} />
+								</p>
 							</div>
 						</div>
 
 						<div className="iag-panel__options">
-							{optionServices.map(({ label, service }) => (
+							{heroOptions.map((option) => (
 								<a
-									key={service.id}
+									key={option.id}
 									className="iag-option"
-									href={whatsappLink(service.message)}
-									target="_blank"
-									rel="noopener noreferrer"
+									href={option.href}
 								>
-									<i className={service.icon} aria-hidden="true"></i>
-									{label}
+									<i className={option.icon} aria-hidden="true"></i>
+									<LocalizedText value={option.label} />
 								</a>
 							))}
 						</div>
 
 						<div className="iag-panel__foot">
-							<span>Something else?</span>
+							<span>
+								<LocalizedText value={hero.panelElse} />
+							</span>
 							<a href={whatsappLink()} target="_blank" rel="noopener noreferrer">
-								Chat with us on WhatsApp
+								<LocalizedText value={hero.panelChat} />
 								<i className="fa-light fa-arrow-right" aria-hidden="true"></i>
 							</a>
 						</div>
 
 						<p className="iag-panel__note">
 							<i className="fa-light fa-shield-check" aria-hidden="true"></i>
-							Independent service. We are not a government agency and do not issue or approve documents.
+							<LocalizedText value={hero.panelNote} />
 						</p>
 					</aside>
 				</div>

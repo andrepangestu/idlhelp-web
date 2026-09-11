@@ -1,4 +1,5 @@
 import { disclaimer } from "@/data/content";
+import LocalizedText from "./LocalizedText";
 
 const Disclaimer = () => {
 	return (
@@ -7,9 +8,13 @@ const Disclaimer = () => {
 				<div className="iag-disclaimer__box">
 					<i className="fa-light fa-scale-balanced" aria-hidden="true"></i>
 					<div>
-						<h2 id="disclaimer-title">{disclaimer.title}</h2>
+						<h2 id="disclaimer-title">
+							<LocalizedText value={disclaimer.title} />
+						</h2>
 						{disclaimer.paragraphs.map((paragraph) => (
-							<p key={paragraph}>{paragraph}</p>
+							<p key={paragraph.en}>
+								<LocalizedText value={paragraph} preserveEnglish />
+							</p>
 						))}
 					</div>
 				</div>

@@ -1,15 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { navItems, whatsappLink } from "@/data/site";
+import { hero } from "@/data/content";
+import { navItems } from "@/data/site";
+import LocalizedText from "./LocalizedText";
 import Logo from "./Logo";
 
 const DESKTOP_MIN = 1280;
+const LANGUAGE_KEY = "idlhelp-language";
+const LANGUAGES = [
+	{ code: "en", label: "EN", title: "English" },
+	{ code: "id", label: "ID", title: "Bahasa Indonesia" },
+];
 
 const SiteHeader = () => {
 	const [scrolled, setScrolled] = useState(false);
 	const [open, setOpen] = useState(false);
 	const [active, setActive] = useState(navItems[0].href.slice(1));
+	const [language, setLanguage] = useState("en");
+
+	useEffect(() => {
+		const storedLanguage = window.localStorage.getItem(LANGUAGE_KEY);
+		const initialLanguage = storedLanguage === "id" ? "id" : "en";
+		setLanguage(initialLanguage);
+		document.querySelector(".iag-site")?.setAttribute("data-iag-lang", initialLanguage);
+		document.documentElement.lang = initialLanguage;
+	}, []);
 
 	// Scroll shadow + scroll-spy for the one-page navigation.
 	useEffect(() => {
@@ -73,9 +89,39 @@ const SiteHeader = () => {
 				aria-current={active === item.href.slice(1) ? "true" : undefined}
 				onClick={() => setOpen(false)}
 			>
-				{item.label}
+				<LocalizedText value={item.label} />
 			</a>
 		));
+
+	const selectLanguage = (nextLanguage) => {
+		setLanguage(nextLanguage);
+		document.querySelector(".iag-site")?.setAttribute("data-iag-lang", nextLanguage);
+		document.documentElement.lang = nextLanguage;
+		window.localStorage.setItem(LANGUAGE_KEY, nextLanguage);
+	};
+
+	const renderLanguageSwitcher = () => (
+		<div
+			className="iag-language"
+			role="group"
+			aria-label="Language / Bahasa"
+			data-iag-language-switcher
+		>
+			{LANGUAGES.map((item) => (
+				<button
+					key={item.code}
+					type="button"
+					className={language === item.code ? "is-active" : ""}
+					aria-pressed={language === item.code}
+					title={item.title}
+					data-iag-lang-option={item.code}
+					onClick={() => selectLanguage(item.code)}
+				>
+					{item.label}
+				</button>
+			))}
+		</div>
+	);
 
 	return (
 		<header className={`iag-header ${scrolled ? "is-scrolled" : ""}`}>
@@ -86,29 +132,31 @@ const SiteHeader = () => {
 					{renderLinks()}
 				</nav>
 
-				<a
-					className="iag-btn iag-btn--primary iag-header__cta"
-					href={whatsappLink()}
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					Request Information
-					<i className="fa-brands fa-whatsapp" aria-hidden="true"></i>
-				</a>
+				<div className="iag-header__controls">
+					{renderLanguageSwitcher()}
 
-				<button
-					type="button"
-					className="iag-burger"
-					aria-label={open ? "Close menu" : "Open menu"}
-					aria-expanded={open}
-					aria-controls="iag-drawer"
-					onClick={() => setOpen((value) => !value)}
-				>
-					<i
-						className={`fa-light ${open ? "fa-xmark" : "fa-bars"}`}
-						aria-hidden="true"
-					></i>
-				</button>
+					<a
+						className="iag-btn iag-btn--primary iag-header__cta"
+						href="#sim-overview"
+					>
+						<LocalizedText value={hero.primaryAction} />
+						<i className="fa-light fa-book-open-cover" aria-hidden="true"></i>
+					</a>
+
+					<button
+						type="button"
+						className="iag-burger"
+						aria-label={open ? "Close menu" : "Open menu"}
+						aria-expanded={open}
+						aria-controls="iag-drawer"
+						onClick={() => setOpen((value) => !value)}
+					>
+						<i
+							className={`fa-light ${open ? "fa-xmark" : "fa-bars"}`}
+							aria-hidden="true"
+						></i>
+					</button>
+				</div>
 			</div>
 
 			<div
@@ -119,12 +167,11 @@ const SiteHeader = () => {
 				<nav aria-label="Main menu">{renderLinks()}</nav>
 				<a
 					className="iag-btn iag-btn--primary"
-					href={whatsappLink()}
-					target="_blank"
-					rel="noopener noreferrer"
+					href="#sim-overview"
+					onClick={() => setOpen(false)}
 				>
-					Request Information
-					<i className="fa-brands fa-whatsapp" aria-hidden="true"></i>
+					<LocalizedText value={hero.primaryAction} />
+					<i className="fa-light fa-book-open-cover" aria-hidden="true"></i>
 				</a>
 			</div>
 		</header>
