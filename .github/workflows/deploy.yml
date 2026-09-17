@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
@@ -23,6 +23,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify release operations
+        run: bash deploy/test-release.sh
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -71,15 +74,10 @@ jobs:
       DEPLOY_HOST: 206.189.84.142
       DEPLOY_USER: idlhelp-deploy
       DEPLOY_BASE: /var/www/idlhelp.com
-      DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
 
     steps:
       - name: Checkout pinned SSH host key
         uses: actions/checkout@v4
-
-      - name: Check server credentials
-        run: |
-          test -n "$DEPLOY_SSH_PRIVATE_KEY" || { echo '::error::DEPLOY_SSH_PRIVATE_KEY is missing'; exit 1; }
 
       - name: Download static export
         uses: actions/download-artifact@v4
@@ -88,7 +86,10 @@ jobs:
           path: out/
 
       - name: Configure SSH
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
         run: |
+          test -n "$DEPLOY_SSH_PRIVATE_KEY" || { echo '::error::DEPLOY_SSH_PRIVATE_KEY is missing'; exit 1; }
           install -d -m 700 "$HOME/.ssh"
           printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
           cp deploy/known_hosts "$HOME/.ssh/known_hosts"
@@ -97,11 +98,24 @@ jobs:
 
       - name: Upload release and activate it
         run: |
-          ssh -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
-            "mkdir -p '$DEPLOY_BASE/releases/$GITHUB_SHA'"
+          release_id="$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          remote="$DEPLOY_USER@$DEPLOY_HOST"
+          ssh_options=(-o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes)
+          ssh "${ssh_options[@]}" "$remote" "mkdir -p '$DEPLOY_BASE/releases/$release_id'"
           rsync -az --delete \
             -e 'ssh -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes' \
-            out/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_BASE/releases/$GITHUB_SHA/"
-          ssh -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
-            "set -eu; test -f '$DEPLOY_BASE/releases/$GITHUB_SHA/index.html'; ln -sfn 'releases/$GITHUB_SHA' '$DEPLOY_BASE/current.next'; mv -Tf '$DEPLOY_BASE/current.next' '$DEPLOY_BASE/current'"
-          echo "Published commit $GITHUB_SHA to $DEPLOY_HOST" >> "$GITHUB_STEP_SUMMARY"
+            out/ "$remote:$DEPLOY_BASE/releases/$release_id/"
+          previous=$(ssh "${ssh_options[@]}" "$remote" bash -s -- activate "$DEPLOY_BASE" "$release_id" < deploy/release.sh)
+
+          response_file=$(mktemp)
+          trap 'rm -f "$response_file"' EXIT
+          if ! curl --fail --silent --show-error --retry 3 --retry-delay 2 --max-time 15 \
+              --resolve "idlhelp.com:443:$DEPLOY_HOST" -o "$response_file" https://idlhelp.com/ \
+              || ! cmp -s out/index.html "$response_file"; then
+            echo '::error::Production health check failed; restoring the previous release'
+            ssh "${ssh_options[@]}" "$remote" bash -s -- rollback "$DEPLOY_BASE" "$previous" < deploy/release.sh
+            exit 1
+          fi
+
+          ssh "${ssh_options[@]}" "$remote" bash -s -- prune "$DEPLOY_BASE" 5 < deploy/release.sh
+          echo "Published commit $GITHUB_SHA to $DEPLOY_HOST; previous release: $previous" >> "$GITHUB_STEP_SUMMARY"
