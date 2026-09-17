@@ -1,12 +1,12 @@
 # Netlify configuration for idlhelp-web (static export of a Next.js site).
 #
-# Deploys normally come from GitHub Actions (.github/workflows/deploy.yml), which builds
-# the site and uploads the `out/` folder. The [build] block below makes Netlify's own Git
-# integration or a local `netlify build` produce the same output.
+# Netlify's Git integration publishes the development branch directly.
+# The ignore rule skips other branches and pull request previews.
 
 [build]
   command = "npm run build"
   publish = "out"
+  ignore = "test \"$BRANCH\" != \"development\" || test \"$CONTEXT\" = \"deploy-preview\""
 
 [build.environment]
   NODE_VERSION = "22"
