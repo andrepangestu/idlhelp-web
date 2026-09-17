@@ -1,10 +1,8 @@
-name: Build & Deploy
+name: Build and deploy
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: [development, main]
   workflow_dispatch:
 
 permissions:
@@ -15,13 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-deploy:
-    name: Build (and deploy to Netlify)
+  build:
+    name: Build static site
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
       NEXT_TELEMETRY_DISABLED: 1
 
     steps:
@@ -54,37 +50,58 @@ jobs:
           test -f out/icon.png
           echo "Export OK: $(find out -type f | wc -l) files"
 
-      # Pull requests get a preview URL: https://pr-<number>--<site-name>.netlify.app
-      - name: Deploy preview to Netlify (pull request)
-        if: github.event_name == 'pull_request' && env.NETLIFY_AUTH_TOKEN != ''
-        run: |
-          npx --yes netlify-cli@latest deploy \
-            --dir=out \
-            --alias="pr-${{ github.event.number }}" \
-            --message="PR #${{ github.event.number }} ${{ github.sha }}" \
-            --json > deploy.json
-          {
-            echo "### Netlify preview"
-            echo
-            echo "$(jq -r '.deploy_url' deploy.json)"
-          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload static export
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-site
+          path: out/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
 
-      # Pushes to main go straight to production.
-      - name: Deploy production to Netlify (main)
-        if: github.event_name != 'pull_request' && env.NETLIFY_AUTH_TOKEN != ''
-        run: |
-          npx --yes netlify-cli@latest deploy \
-            --dir=out \
-            --prod \
-            --message="main ${{ github.sha }}" \
-            --json > deploy.json
-          {
-            echo "### Netlify production"
-            echo
-            echo "$(jq -r '.url' deploy.json)"
-          } >> "$GITHUB_STEP_SUMMARY"
+  deploy-production:
+    name: Deploy main to server
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      DEPLOY_HOST: 206.189.84.142
+      DEPLOY_USER: idlhelp-deploy
+      DEPLOY_BASE: /var/www/idlhelp.com
+      DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
 
-      - name: Deploy skipped (secrets missing)
-        if: env.NETLIFY_AUTH_TOKEN == ''
+    steps:
+      - name: Checkout pinned SSH host key
+        uses: actions/checkout@v4
+
+      - name: Check server credentials
         run: |
-          echo "Build verified. Deploy skipped because NETLIFY_AUTH_TOKEN / NETLIFY_SITE_ID secrets are not set." >> "$GITHUB_STEP_SUMMARY"
+          test -n "$DEPLOY_SSH_PRIVATE_KEY" || { echo '::error::DEPLOY_SSH_PRIVATE_KEY is missing'; exit 1; }
+
+      - name: Download static export
+        uses: actions/download-artifact@v4
+        with:
+          name: static-site
+          path: out/
+
+      - name: Configure SSH
+        run: |
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          cp deploy/known_hosts "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+          ssh-keygen -F "$DEPLOY_HOST" -f "$HOME/.ssh/known_hosts" > /dev/null
+
+      - name: Upload release and activate it
+        run: |
+          ssh -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p '$DEPLOY_BASE/releases/$GITHUB_SHA'"
+          rsync -az --delete \
+            -e 'ssh -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes' \
+            out/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_BASE/releases/$GITHUB_SHA/"
+          ssh -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "set -eu; test -f '$DEPLOY_BASE/releases/$GITHUB_SHA/index.html'; ln -sfn 'releases/$GITHUB_SHA' '$DEPLOY_BASE/current.next'; mv -Tf '$DEPLOY_BASE/current.next' '$DEPLOY_BASE/current'"
+          echo "Published commit $GITHUB_SHA to $DEPLOY_HOST" >> "$GITHUB_STEP_SUMMARY"
