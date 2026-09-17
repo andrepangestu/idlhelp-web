@@ -61,7 +61,7 @@ scp deploy/idlhelp.com.nginx.conf root@206.189.84.142:/etc/nginx/sites-available
 ssh root@206.189.84.142 'ln -sfn /etc/nginx/sites-available/idlhelp.com /etc/nginx/sites-enabled/idlhelp.com && nginx -t && systemctl reload nginx'
 ```
 
-Allow inbound TCP 80 and 443 in both the server firewall and any provider firewall. Keep SSH access open. The active `main` export is at `/var/www/idlhelp.com/current`; Nginx serves that symlink. Both domain names returned HTTPS 200 for `/`, while `/home-02` returned 404 in a local VPS check. Each later deployment copies a complete release before replacing the symlink. Previous releases remain available for rollback by changing the `current` symlink.
+Allow inbound TCP 80 and 443 in both the server firewall and any provider firewall. Keep SSH access open. The active `main` export is at `/var/www/idlhelp.com/current`; Nginx serves that symlink. Both domain names returned HTTPS 200 for `/`, while `/home-02` returned 404 in a local VPS check. Each workflow run uploads to a unique release directory named with the commit SHA, run ID and attempt number. [`deploy/release.sh`](deploy/release.sh) atomically points `current` at the complete release. The workflow compares the served homepage with the built `index.html`, restores the previous release if they differ, and keeps the active release plus the four most recent others after a successful check. The previous release path is recorded in the GitHub Actions job summary for manual rollback.
 
 ### Domain and HTTPS
 
