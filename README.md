@@ -31,9 +31,9 @@ The existing Netlify Git integration builds and publishes `development`. `.githu
 - `development` → Netlify development site at its `*.netlify.app` address
 - `main` → `206.189.84.142`, served at `https://idlhelp.com`
 
-As of 2026-09-17, the VPS already serves a manually bootstrapped export of `main` commit `723b4c7` over HTTP when addressed with the `idlhelp.com` Host header. The GitHub workflow is not active until these repository changes and its secrets are pushed. Public DNS still points to Namecheap, so the domain is not live on the VPS yet.
+As of 2026-09-17, the VPS serves `main` commit `65be94f` at `https://idlhelp.com`; the GitHub build and VPS deployment jobs both passed for that commit. DNS points to `206.189.84.142`, and Let's Encrypt HTTPS is active for both apex and `www`. Certificate renewal passed a dry run. The production secret is configured separately in GitHub.
 
-Use the existing Netlify project that previously deployed `main`. In **Project configuration → Build & deploy → Continuous deployment → Branches and deploy contexts**, change its **production branch** to `development` and leave builds **active**. Set branch deploys to **None** if no other branch needs a Netlify URL. Netlify then publishes `development` at the existing `*.netlify.app` URL without any GitHub Netlify token or Project ID secret. If `idlhelp.com` is attached as a Netlify custom domain, remove it before directing DNS to the VPS. `netlify.toml` also makes Netlify's Git builds skip `main` and sends `X-Robots-Tag: noindex, nofollow` on the development site.
+Use the existing Netlify project that previously deployed `main`. In **Project configuration → Build & deploy → Continuous deployment → Branches and deploy contexts**, change its **production branch** to `development` and leave builds **active**. As of 2026-09-17, Netlify still publishes `main` commit `723b4c7`, while the latest `development` commit was treated as a canceled deploy preview. After switching the branch, trigger a production deploy for `development` and verify the published deploy's branch and commit. Set branch deploys to **None** if no other branch needs a Netlify URL. Netlify then publishes `development` at the existing `*.netlify.app` URL without any GitHub Netlify token or Project ID secret. If `idlhelp.com` is attached as a Netlify custom domain, remove it before directing DNS to the VPS. `netlify.toml` also makes Netlify's Git builds skip `main` and sends `X-Robots-Tag: noindex, nofollow` on the development site.
 
 Create a GitHub environment named `production` under **Settings → Environments**, restrict it to `main`, and add this environment secret:
 
@@ -54,34 +54,33 @@ install -d -o idlhelp-deploy -g idlhelp-deploy -m 755 /var/www/idlhelp.com/relea
 
 The dedicated private key is stored on this workstation at `~/.ssh/idlhelp_deploy`; its public key is installed in `/home/idlhelp-deploy/.ssh/authorized_keys` on the VPS. SSH login and directory permissions were verified. **Do not regenerate or commit this private key.** Put its contents in the `DEPLOY_SSH_PRIVATE_KEY` GitHub environment secret. The VPS's public host key is pinned in [`deploy/known_hosts`](deploy/known_hosts); its fingerprint was checked against the VPS before adding it.
 
-The [`deploy/idlhelp.com.nginx.conf`](deploy/idlhelp.com.nginx.conf) virtual host was installed and `nginx -t` passed on 2026-09-17. To reapply a future change, run:
+The [`deploy/idlhelp.com.nginx.conf`](deploy/idlhelp.com.nginx.conf) virtual host includes the Certbot HTTPS settings and `nginx -t` passed on 2026-09-17. To reapply a future change, run:
 
 ```bash
 scp deploy/idlhelp.com.nginx.conf root@206.189.84.142:/etc/nginx/sites-available/idlhelp.com
 ssh root@206.189.84.142 'ln -sfn /etc/nginx/sites-available/idlhelp.com /etc/nginx/sites-enabled/idlhelp.com && nginx -t && systemctl reload nginx'
 ```
 
-Allow inbound TCP 80 and 443 in both the server firewall and any provider firewall. Keep SSH access open. The initial `main` export is already at `/var/www/idlhelp.com/current`; Nginx serves that symlink. Both domain names returned HTTP 200 for `/`, while `/home-02` returned 404 in a local VPS check. Each later deployment copies a complete release before replacing the symlink. Previous releases remain available for rollback by changing the `current` symlink.
+Allow inbound TCP 80 and 443 in both the server firewall and any provider firewall. Keep SSH access open. The active `main` export is at `/var/www/idlhelp.com/current`; Nginx serves that symlink. Both domain names returned HTTPS 200 for `/`, while `/home-02` returned 404 in a local VPS check. Each later deployment copies a complete release before replacing the symlink. Previous releases remain available for rollback by changing the `current` symlink.
 
 ### Domain and HTTPS
 
-The authoritative nameservers are `dns1.registrar-servers.com` and `dns2.registrar-servers.com`, so edit DNS in Namecheap **Domain List → Manage → Advanced DNS**. As of 2026-09-17, `@` points to Namecheap's forwarding IP `162.255.119.164`, and `www` points to `parkingpage.namecheap.com`. Replace those Host Records with:
+The authoritative nameservers are `dns1.registrar-servers.com` and `dns2.registrar-servers.com`. As of 2026-09-17, these Namecheap **Domain List → Manage → Advanced DNS** Host Records are active:
 
 | Type | Host | Value |
 | --- | --- | --- |
 | A | `@` | `206.189.84.142` |
 | CNAME | `www` | `idlhelp.com` |
 
-Remove conflicting A, AAAA, CNAME or URL Redirect records for `@` and `www`. Do not change MX/TXT records used for email. Check `dig +short idlhelp.com` and `dig +short www.idlhelp.com` after DNS propagation.
+Do not change MX/TXT records used for email. If the VPS address changes, update the A record and check `dig +short idlhelp.com` and `dig +short www.idlhelp.com` after DNS propagation.
 
-After DNS points to the VPS and `http://idlhelp.com` loads publicly, request HTTPS for both names using the Certbot installation already on the server:
+Certbot has issued a certificate for both names, and HTTP redirects to HTTPS. To check renewal on the server, run:
 
 ```bash
-certbot --nginx -d idlhelp.com -d www.idlhelp.com --redirect
-certbot renew --dry-run
+certbot renew --dry-run --cert-name idlhelp.com
 ```
 
-Check `https://idlhelp.com` and `https://www.idlhelp.com` after certificate issuance. The server hosts the public domain; Netlify keeps the development address. Before public launch, replace the contact and legal placeholders listed below. Template demo routes remain in the development export, which is marked `noindex`.
+The server hosts the public domain; Netlify keeps the development address. Before promoting new content to `main`, replace the contact and legal placeholders listed below. Template demo routes remain in the development export, which is marked `noindex`.
 
 ## Where things live
 
