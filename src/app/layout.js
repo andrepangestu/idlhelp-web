@@ -1,5 +1,5 @@
 import { Mona_Sans } from "next/font/google";
-import GoogleAnalytics from "@/components/site/GoogleAnalytics";
+import GoogleTag from "@/components/site/GoogleTag";
 import { site } from "@/data/site";
 import "react-range-slider-input/dist/style.css";
 import "swiper/css";
@@ -46,10 +46,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
 	return (
 		<html lang="en" data-scroll-behavior="smooth" dir="ltr">
+			<head>
+				<GoogleTag />
+			</head>
 			<body className={`${bodyFont.variable} ${headingFont.variable}`}>
 				{children}
 			</body>
-			<GoogleAnalytics />
 		</html>
 	);
 }
