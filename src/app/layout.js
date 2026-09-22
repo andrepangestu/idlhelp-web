@@ -1,4 +1,5 @@
 import { Mona_Sans } from "next/font/google";
+import GoogleAnalytics from "@/components/site/GoogleAnalytics";
 import { site } from "@/data/site";
 import "react-range-slider-input/dist/style.css";
 import "swiper/css";
@@ -48,6 +49,7 @@ export default function RootLayout({ children }) {
 			<body className={`${bodyFont.variable} ${headingFont.variable}`}>
 				{children}
 			</body>
+			<GoogleAnalytics />
 		</html>
 	);
 }
